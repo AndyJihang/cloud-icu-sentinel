@@ -49,6 +49,10 @@ flowchart LR
 
 ![Cloud-ICU dashboard preview](docs/assets/frontend-dashboard-preview.png)
 
+## RAG Alert Example
+
+![Cloud-ICU RAG alert preview](docs/assets/rag-alert-preview.png)
+
 ## What It Does
 
 The system accepts simulated or live vital sign snapshots, checks whether a patient meets one of several high-risk conditions, suppresses duplicate alerts for the same patient and condition, retrieves the most relevant ICU guideline chunks, and generates structured recommendations.
