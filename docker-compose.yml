@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cloud-icu-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: cloud-icu-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  api:
+    image: python:3.11-slim
+    container_name: cloud-icu-api
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      - redis
+      - qdrant
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /app
+      APP_NAME: ${APP_NAME:-Cloud-ICU Sentinel}
+      APP_ENV: ${APP_ENV:-development}
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8000"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-icu-guidelines}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_TOP_K: ${QDRANT_TOP_K:-3}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-20.0}
+      OPENAI_MAX_RECOMMENDATIONS: ${OPENAI_MAX_RECOMMENDATIONS:-5}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_ALERT_KEY_PREFIX: ${REDIS_ALERT_KEY_PREFIX:-cloud-icu:alert}
+      KNOWLEDGE_BASE_DIR: ${KNOWLEDGE_BASE_DIR:-knowledge_base}
+      GUIDELINE_FILE: ${GUIDELINE_FILE:-acute_respiratory_failure.md}
+      SPO2_ALERT_THRESHOLD: ${SPO2_ALERT_THRESHOLD:-90}
+      ALERT_COOLDOWN_SECONDS: ${ALERT_COOLDOWN_SECONDS:-300}
+      SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-1.0}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    command: >
+      /bin/sh -c "pip install --no-cache-dir -r requirements.txt &&
+      uvicorn src.agent.api:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  qdrant_storage:
